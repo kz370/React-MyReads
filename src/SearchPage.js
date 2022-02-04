@@ -1,54 +1,54 @@
-import React, { useState,useEffect } from 'react';
+import React, { Component } from 'react';
 import { Link } from 'react-router-dom';
 import * as BooksAPI from './BooksAPI'
 
 /*eslint-disable */
-function SearchPage (props) {
-  const [query, setQuery] = useState('')
-  const [books,setBooks] = useState([])
+class SearchPage extends Component {
+  state = {
+    query: ''
+  }
+  async componentDidMount() {
+    const books = await BooksAPI.getAll();
+    this.setState({ books: books })
+  }
 
-  useEffect(() => {
-    async function setBooks() { 
-      const bookList = await BooksAPI.getAll();
-      setBooks(bookList)
-     }
-  })
-    
-  const onSearch = (event) => {
-    const queryInput = event.target.value;
-    setQuery(queryInput)
+  onSearch = (event) => {
+    const query = event.target.value;
+    this.setState({ query: query })
     if (query === '') {
       BooksAPI.getAll()
-        .then(data => setBooks(data))
+        .then(data => this.setState({ books: data }))
     } else {
       BooksAPI.search(query)
         .then(data => {
-          data.length ? setBooks(data) : setBooks([])
+          data.length ? this.setState({ books: data }) : this.setState({ books: [] })
         });
     }
   }
 
-  const changeShelf = (bookId, event) => {
+  changeShelf = (bookId, event) => {
     const newShelf = event.target.value
-    props.onChangeShelf([bookId, newShelf])
+    this.props.onChangeShelf([bookId, newShelf])
   }
 
-  const getShelf = (id) => {
-    return props.onGetShelf(id)
+  getShelf = (id) => {
+    return this.props.onGetShelf(id)
   }
+
+  render() {
     return (
       <div className="search-books">
         <div className="search-books-bar">
           <Link to="/" className='close-search'>Close</Link>
           <div className="search-books-input-wrapper">
-            <input type="text" placeholder="Search by title or author" value={query} onChange={onSearch} />
+            <input type="text" placeholder="Search by title or author" value={this.state.query} onChange={this.onSearch} />
           </div>
         </div>
         <div className="search-books-results">
           <ol className="books-grid">
-            {typeof books !== "undefined" ? Object.entries(books).map((book) => {
+            {typeof this.state.books !== "undefined" ? Object.entries(this.state.books).map((book) => {
               if (book[1].imageLinks && book[1].title) {
-                const shelf = getShelf(book[1].id)
+                const shelf = this.getShelf(book[1].id)
                 try {
                   return (
                     <li key={book[1].id}>
@@ -56,7 +56,7 @@ function SearchPage (props) {
                         <div className="book-top">
                           <div className="book-cover" style={{ width: 128, height: 193, backgroundImage: `url("${book[1].imageLinks.thumbnail}")` }}></div>
                           <div className="book-shelf-changer">
-                            <select value={shelf} onChange={() => changeShelf(book[1], event)}>
+                            <select value={shelf} onChange={() => this.changeShelf(book[1], event)}>
                               <option value="move" disabled>Move to...</option>
                               <option value="currentlyReading">Currently Reading</option>
                               <option value="wantToRead">Want to Read</option>
@@ -80,4 +80,5 @@ function SearchPage (props) {
       </div>
     )
   }
+}
 export default SearchPage;

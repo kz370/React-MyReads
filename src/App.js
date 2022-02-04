@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React from 'react'
 import * as BooksAPI from './BooksAPI'
 import './App.css'
 import ListBooks from './LIstBooks'
@@ -6,50 +6,47 @@ import SearchPage from './SearchPage'
 import { Route, Routes } from 'react-router-dom'
 
 /*eslint-disable */
-function BooksApp() {
-  const [shelf, setShelf] = useState({
-    currentlyReading: [],
-    wantToRead: [],
-    read: []
-  })
-  const [books, setBooks] = useState([])
+class BooksApp extends React.Component {
+  state = {
+    shelf: {
+      currentlyReading: [],
+      wantToRead: [],
+      read: []
+    }
+  }
 
-
-  const filter = (shelf) => {
+  filter = (shelf) => {
+    const books = this.state.books
     return books.filter(book => book.shelf === shelf).map(book => { return book.id })
   }
 
-  useEffect(() => {
-    async function fetchBooks() {
-      try {
-        const bookList = await BooksAPI.getAll();
-        setBooks(bookList)
-        setShelf({
-          currentlyReading: filter('currentlyReading'),
-          wantToRead: filter('wantToRead'),
-          read: filter('read')
-        })
-      } catch (e) {
-        console.log(e);
+  async componentDidMount() {
+    const books = await BooksAPI.getAll();
+    this.setState({ books: books })
+    this.setState({
+      shelf: {
+        currentlyReading: this.filter('currentlyReading'),
+        wantToRead: this.filter('wantToRead'),
+        read: this.filter('read')
       }
-    }
-    fetchBooks()
-  });
+    })
+  }
 
-  const changeShelf = (item) => {
+  changeShelf = (item) => {
     BooksAPI.update(item[0], item[1])
       .then((res) => {
-        setShelf(res)
+        this.setState({ shelf: res });
         BooksAPI.getAll()
           .then(data => {
-            setBooks(data)
+            this.setState({ books: data })
           })
       })
   }
 
-  const getShelf = (id) => {
+  getShelf = (id) => {
     let currentShelf = 'none'
-    Object.entries(shelf).map(shelf => {
+    const shelf = Object.entries(this.state.shelf)
+    shelf.map(shelf => {
       if (shelf[1].includes(id)) {
         currentShelf = shelf[0]
       }
@@ -57,25 +54,28 @@ function BooksApp() {
     return currentShelf;
 
   }
-  return (
-    <div className="app">
-      <Routes>
-        <Route
-          exact path='/search'
-          element={<SearchPage
-            onChangeShelf={changeShelf}
-            onGetShelf={getShelf} />}
-        />
 
-        <Route
-          exact path='/'
-          element={<ListBooks
-            books={typeof books !== 'undefined' ? books : ''}
-            onChangeShelf={changeShelf} />}
-        />
-      </Routes>
-    </div>
-  )
+  render() {
+    return (
+      <div className="app">
+        <Routes>
+          <Route
+            exact path='/search'
+            element={<SearchPage
+              onChangeShelf={this.changeShelf}
+              onGetShelf={this.getShelf} />}
+          />
+
+          <Route
+            exact path='/'
+            element={<ListBooks
+              books={typeof this.state.books !== 'undefined' ? this.state.books : ''}
+              onChangeShelf={this.changeShelf} />}
+          />
+        </Routes>
+      </div>
+    )
+  }
 }
 
 export default BooksApp
